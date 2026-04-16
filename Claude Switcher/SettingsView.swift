@@ -1,9 +1,11 @@
 import SwiftUI
+import AppKit
 
 struct SettingsView: View {
-    @EnvironmentObject var profileManager: ProfileManager
+    @Environment(ProfileManager.self) var profileManager
 
     var body: some View {
+        @Bindable var profileManager = profileManager
         VStack(alignment: .leading, spacing: 0) {
             List {
                 ForEach($profileManager.profiles) { $profile in
@@ -11,6 +13,9 @@ struct SettingsView: View {
                         TextField("", text: $profile.emoji)
                             .frame(width: 32)
                             .multilineTextAlignment(.center)
+                            .onTapGesture {
+                                NSApp.orderFrontCharacterPalette(nil)
+                            }
 
                         TextField("Name", text: $profile.name)
                             .frame(width: 120)

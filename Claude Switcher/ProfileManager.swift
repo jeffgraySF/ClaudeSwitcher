@@ -1,5 +1,7 @@
 import Foundation
 import AppKit
+import Observation
+import SwiftUI
 
 struct Profile: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
@@ -8,12 +10,13 @@ struct Profile: Identifiable, Codable, Hashable {
     var emoji: String
 }
 
-class ProfileManager: ObservableObject {
-    @Published var profiles: [Profile] {
+@Observable
+class ProfileManager {
+    var profiles: [Profile] {
         didSet { save() }
     }
 
-    @Published var activeProfileID: UUID? {
+    var activeProfileID: UUID? {
         didSet {
             UserDefaults.standard.set(activeProfileID?.uuidString, forKey: "activeProfileID")
         }
@@ -42,27 +45,37 @@ class ProfileManager: ObservableObject {
         }
     }
 
-    // Opens a new Terminal window with CLAUDE_CONFIG_DIR set — never reads credentials.
-    /// Opens a new Terminal window with CLAUDE_CONFIG_DIR pointed at this profile's folder.
-    /// This app never reads, writes, or swaps credential files.
+    /// Opens a folder picker, then launches Claude Code in a new Terminal window with
+    /// CLAUDE_CONFIG_DIR set. Never reads, writes, or swaps credential files.
     func launchClaude(for profile: Profile) {
         let expandedDir = NSString(string: profile.configDir).expandingTildeInPath
+        try? FileManager.default.createDirectory(atPath: expandedDir, withIntermediateDirectories: true)
 
-        // Create the config dir if it doesn't exist yet
-        try? FileManager.default.createDirectory(
-            atPath: expandedDir,
-            withIntermediateDirectories: true,
-            attributes: nil
-        )
+        let panel = NSOpenPanel()
+        panel.title = "Choose project folder"
+        panel.message = "Opening Claude Code as \(profile.name)"
+        panel.prompt = "Open in Terminal"
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.canCreateDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = URL(fileURLWithPath: NSHomeDirectory())
 
-        let source = """
-        tell application "Terminal"
-            activate
-            do script "CLAUDE_CONFIG_DIR='\(expandedDir)' claude"
-        end tell
+        NSApp.activate(ignoringOtherApps: true)
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        // Write a .command file — Terminal auto-opens these, no AppleScript/TCC needed
+        let shellScript = """
+        #!/bin/bash
+        cd '\(url.path.replacingOccurrences(of: "'", with: "'\\''"))'
+        export CLAUDE_CONFIG_DIR='\(expandedDir.replacingOccurrences(of: "'", with: "'\\''"))'
+        claude
         """
-        var error: NSDictionary?
-        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        let tempURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(profile.name).command")
+        try? shellScript.write(to: tempURL, atomically: true, encoding: .utf8)
+        try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempURL.path)
+        NSWorkspace.shared.open(tempURL)
     }
 
     func addProfile() {

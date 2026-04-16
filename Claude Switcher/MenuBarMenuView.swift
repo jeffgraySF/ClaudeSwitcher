@@ -1,9 +1,17 @@
 import SwiftUI
+import AppKit
 
 struct MenuBarMenuView: View {
-    @EnvironmentObject var profileManager: ProfileManager
+    @Environment(ProfileManager.self) var profileManager
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
+        Text("Claude Switcher")
+            .font(.headline)
+            .foregroundStyle(.secondary)
+
+        Divider()
+
         // Picker gives us native checkmarks for free
         Picker("Account", selection: Binding(
             get: { profileManager.activeProfileID },
@@ -24,8 +32,9 @@ struct MenuBarMenuView: View {
 
         Divider()
 
-        SettingsLink {
-            Text("Settings…")
+        Button("Settings…") {
+            openSettings()
+            NSApp.activate(ignoringOtherApps: true)
         }
 
         Divider()

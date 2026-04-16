@@ -2,20 +2,20 @@ import SwiftUI
 
 @main
 struct ClaudeSwitcherApp: App {
-    @StateObject private var profileManager = ProfileManager()
+    @State private var profileManager = ProfileManager()
 
     var body: some Scene {
         MenuBarExtra {
             MenuBarMenuView()
-                .environmentObject(profileManager)
+                .environment(profileManager)
         } label: {
-            Text(profileManager.activeProfile?.emoji ?? "👤")
+            Image(systemName: "arrow.triangle.2.circlepath")
         }
         .menuBarExtraStyle(.menu)
 
         Settings {
             SettingsView()
-                .environmentObject(profileManager)
+                .environment(profileManager)
         }
     }
 }

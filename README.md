@@ -22,13 +22,13 @@ Each profile maps to a separate `CLAUDE_CONFIG_DIR` folder:
 ~/.claude-freelance/  ← freelance account credentials live here
 ```
 
-When you switch profiles, ClaudeSwitcher opens a new Terminal window with:
+When you switch profiles, ClaudeSwitcher prompts for a project folder, then opens a new Terminal window with:
 
 ```bash
-CLAUDE_CONFIG_DIR=~/.claude-work claude
+cd ~/your-project && export CLAUDE_CONFIG_DIR=~/.claude-work && claude
 ```
 
-That's the entire mechanism. **This app never reads, writes, or touches your credential files.**
+**This app never reads, writes, or touches your credential files.**
 
 ## Security
 
@@ -37,10 +37,12 @@ Most account-switcher tools for Claude Code work by reading OAuth tokens out of 
 - ✅ No Keychain access
 - ✅ No credential reading or swapping
 - ✅ Credentials stay isolated in their own folders
-- ✅ ~120 lines of Swift — audit it in a few minutes
+- ✅ ~150 lines of Swift — audit it in a few minutes
 - ✅ Stores only profile names and folder paths in `UserDefaults`
 
 The tradeoff: no usage stats dashboard. That's the feature that requires token access, and it's the one we skip.
+
+**Build from source.** There are no signed binaries. Review the code before running it.
 
 ## Requirements
 
@@ -50,17 +52,17 @@ The tradeoff: no usage stats dashboard. That's the feature that requires token a
 
 ## Installation
 
-### Build from source
-
 ```bash
 git clone https://github.com/yourusername/ClaudeSwitcher.git
+cd ClaudeSwitcher
+make run
 ```
 
-- Open Xcode → File → New → Project → **macOS → App**
-- Product Name: `ClaudeSwitcher`, Interface: **SwiftUI**, Language: **Swift**, Deployment: **macOS 14.0**
-- Delete the generated `ContentView.swift` and add all `.swift` files from this repo
-- In `Info.plist`, add `LSUIElement = YES` to hide the dock icon
-- Build and run (⌘R)
+Or open `Claude Switcher/Claude Switcher.xcodeproj` in Xcode and hit ⌘R.
+
+On first launch, macOS will ask if ClaudeSwitcher can control Terminal. Click **Allow**.
+
+> **Note for forks:** update `PRODUCT_BUNDLE_IDENTIFIER` in the Xcode target's build settings to use your own reverse-domain identifier.
 
 ## First-time setup
 
@@ -71,12 +73,9 @@ CLAUDE_CONFIG_DIR=~/.claude-personal claude   # log in, then /exit
 CLAUDE_CONFIG_DIR=~/.claude-work claude       # log in, then /exit
 ```
 
-You'll also see a one-time macOS prompt asking if ClaudeSwitcher can control Terminal. Click **Allow**.
-
 ## Usage
 
-- **Switch accounts** — click the menu bar icon, pick a profile. A new Terminal window opens with that account active.
-- **Active account** — the menu bar icon shows the emoji of the currently active profile.
+- **Switch accounts** — click the menu bar icon, pick a profile, choose a project folder. A new Terminal window opens in that folder with the account active.
 - **Edit profiles** — menu bar icon → **Settings…** to rename, change emojis, or update config dirs.
 - **Add/remove** — `+` button in Settings, or swipe left on a row to delete.
 
@@ -94,7 +93,6 @@ SettingsView.swift        — settings window
 PRs welcome. Some ideas:
 
 - iTerm2 support
-- Menu bar label showing the active profile name
 - Keyboard shortcut to cycle profiles
 - Import/export profiles as JSON
 
