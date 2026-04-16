@@ -1,8 +1,13 @@
 import SwiftUI
+import ServiceManagement
 
 @main
 struct ClaudeSwitcherApp: App {
     @State private var profileManager = ProfileManager()
+
+    init() {
+        try? SMAppService.mainApp.register()
+    }
 
     var body: some Scene {
         MenuBarExtra {
