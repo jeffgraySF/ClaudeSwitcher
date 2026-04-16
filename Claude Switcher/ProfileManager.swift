@@ -70,6 +70,7 @@ class ProfileManager {
         cd '\(url.path.replacingOccurrences(of: "'", with: "'\\''"))'
         export CLAUDE_CONFIG_DIR='\(expandedDir.replacingOccurrences(of: "'", with: "'\\''"))'
         claude
+        exec $SHELL
         """
         let tempURL = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString + ".command")
