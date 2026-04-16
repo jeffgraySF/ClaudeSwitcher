@@ -22,10 +22,12 @@ Each profile maps to a separate `CLAUDE_CONFIG_DIR` folder:
 ~/.claude-freelance/  ← freelance account credentials live here
 ```
 
-When you switch profiles, ClaudeSwitcher prompts for a project folder, then opens a new Terminal window with:
+When you pick a profile, ClaudeSwitcher asks which project folder to open, then launches a Terminal window running:
 
 ```bash
-cd ~/your-project && export CLAUDE_CONFIG_DIR=~/.claude-work && claude
+cd ~/your-project
+export CLAUDE_CONFIG_DIR=~/.claude-work
+claude
 ```
 
 **This app never reads, writes, or touches your credential files.**
@@ -60,8 +62,6 @@ make run
 
 Or open `Claude Switcher/Claude Switcher.xcodeproj` in Xcode and hit ⌘R.
 
-On first launch, macOS will ask if ClaudeSwitcher can control Terminal. Click **Allow**.
-
 > **Note for forks:** update `PRODUCT_BUNDLE_IDENTIFIER` in the Xcode target's build settings to use your own reverse-domain identifier.
 
 ## First-time setup
@@ -75,9 +75,10 @@ CLAUDE_CONFIG_DIR=~/.claude-work claude       # log in, then /exit
 
 ## Usage
 
-- **Switch accounts** — click the menu bar icon, pick a profile, choose a project folder. A new Terminal window opens in that folder with the account active.
+- **Switch accounts** — click the menu bar icon, pick a profile, choose a project folder. A new Terminal window opens in that folder with the account active and `claude` running.
 - **Edit profiles** — menu bar icon → **Settings…** to rename, change emojis, or update config dirs.
 - **Add/remove** — `+` button in Settings, or swipe left on a row to delete.
+- **Emoji picker** — click the emoji field in Settings to open the macOS character palette.
 
 ## Project structure
 

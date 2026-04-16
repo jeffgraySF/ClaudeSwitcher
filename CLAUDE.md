@@ -4,34 +4,43 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-ClaudeSwitcher is a macOS menu bar app (~120 lines of Swift) that lets users switch between multiple Claude Code accounts by launching a new Terminal window with `CLAUDE_CONFIG_DIR` set to the appropriate profile folder. It never touches credential files or the Keychain.
+ClaudeSwitcher is a macOS menu bar app (~150 lines of Swift) that lets users switch between multiple Claude Code accounts. Picking a profile shows a folder picker, then writes a temporary `.command` file and opens it in Terminal — which `cd`s to the chosen folder, exports `CLAUDE_CONFIG_DIR`, and launches `claude`. It never touches credential files or the Keychain.
 
 ## Building
 
-Open `Claude Switcher/Claude Switcher.xcodeproj` in Xcode and build with ⌘R. There is no command-line build script — this is an Xcode-only project.
+```bash
+make build   # build only
+make run     # build and relaunch
+```
 
-Minimum deployment target: macOS 14.0. Requires Xcode 15+.
+Or open `Claude Switcher/Claude Switcher.xcodeproj` in Xcode and hit ⌘R.
 
-The app requires Automation permission (to control Terminal via AppleScript) — macOS will prompt on first launch.
+Minimum deployment target: macOS 14.0. Requires Xcode 15+. No code signing required for local development.
 
 ## Architecture
 
 Four Swift files, no third-party dependencies:
 
-- **`ClaudeSwitcherApp.swift`** — `@main` entry point. Creates `ProfileManager` as a `@StateObject` and passes it as an `environmentObject` to both scenes: `MenuBarExtra` (the menu) and `Settings` (the settings window). The menu bar icon label displays the active profile's emoji.
-- **`ProfileManager.swift`** — `ObservableObject` holding the `[Profile]` array. Persists to `UserDefaults` as JSON on every mutation. `launchClaude(for:)` runs an AppleScript to open a new Terminal window with `CLAUDE_CONFIG_DIR` set; it also creates the config directory if missing.
-- **`MenuBarMenuView.swift`** — Dropdown menu using a `Picker` with `.inline` style for native checkmarks. Selecting a profile updates `activeProfileID` and calls `launchClaude`.
-- **`SettingsView.swift`** — List of editable profile rows (emoji, name, configDir). Add via `+` button; delete by swiping left (`.onDelete`).
+- **`ClaudeSwitcherApp.swift`** — `@main` entry point. Holds `ProfileManager` as `@State` and injects it via `.environment()` into both scenes: `MenuBarExtra` (the menu) and `Settings`. Menu bar icon is a fixed SF Symbol (`arrow.triangle.2.circlepath`), not the active profile emoji.
+- **`ProfileManager.swift`** — `@Observable` class holding `[Profile]`. Persists to `UserDefaults` as JSON on every mutation. `launchClaude(for:)` shows `NSOpenPanel`, writes a temp `.command` file to `/tmp`, and opens it with `NSWorkspace`. Also creates the config directory if missing.
+- **`MenuBarMenuView.swift`** — Dropdown menu with a title header, inline `Picker` for profile selection (native checkmarks), Settings button via `\.openSettings` environment action, and Quit.
+- **`SettingsView.swift`** — List of editable profile rows (emoji, name, configDir). Emoji field opens the macOS character palette on tap. Add via `+`; delete by swiping left.
 
-The `Profile` struct is `Codable` + `Hashable` with a stable `UUID` id. There are no async operations, no networking, and no framework dependencies beyond SwiftUI and AppKit.
+The `Profile` struct is `Codable` + `Hashable` with a stable `UUID` id.
 
 ## Key constraints
 
-- **No Keychain access** — this is a deliberate security boundary. Do not add any code that reads macOS Keychain entries.
-- **No credential file access** — `launchClaude` only creates the directory, never reads its contents.
-- The app uses `LSUIElement = YES` (set in Info.plist) to suppress the Dock icon.
-- `ProfileManager` is injected via `.environmentObject` — both views depend on it being in the environment, not passed directly.
+- **No Keychain access** — deliberate security boundary. Do not add code that reads macOS Keychain entries.
+- **No credential file access** — `launchClaude` only creates the config directory, never reads it.
+- **Sandbox is disabled** (`ENABLE_APP_SANDBOX = NO`) — required for `NSWorkspace.open` on temp `.command` files. This is intentional; the app is meant to be built from source.
+- `LSUIElement = YES` is set via `INFOPLIST_KEY_LSUIElement` in build settings (not a separate Info.plist file).
+- `ProfileManager` uses `@Observable` + `@Environment` (Swift/SwiftUI modern observation). Do not revert to `ObservableObject`/`@Published` — it breaks under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`.
+- The project targets macOS 26 SDK (Xcode 26) but deploys to macOS 14.0.
 
-## File layout note
+## UserDefaults
 
-There are loose `.swift` files in the repo root (`ProfileManager.swift`, `MenuBarMenuView.swift`, `SettingsView.swift`) that mirror the files inside `Claude Switcher/`. The canonical source is inside the `Claude Switcher/` directory used by the Xcode project. The root-level files appear to be drafts or copies.
+Profiles are stored under bundle ID `com.claudeswitcher.ClaudeSwitcher`. If the bundle ID ever changes, profiles will appear reset. To migrate: copy the `profiles` and `activeProfileID` keys from the old domain to the new one using `defaults export/write`, then run `killall cfprefsd` to flush the preferences cache before relaunching.
+
+## Temp file launch mechanism
+
+`launchClaude` writes a shell script to `/tmp/[ProfileName].command`, marks it executable, and opens it with `NSWorkspace`. Terminal auto-opens `.command` files. The file is not cleaned up (it's tiny and in `/tmp`). The tab title shows the profile name as the filename.
