@@ -91,11 +91,7 @@ SettingsView.swift        — settings window
 
 ## Contributing
 
-PRs welcome. Some ideas:
-
-- iTerm2 support
-- Keyboard shortcut to cycle profiles
-- Import/export profiles as JSON
+PRs welcome.
 
 ## License
 
