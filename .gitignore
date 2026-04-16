@@ -16,6 +16,9 @@ build/
 *.hmap
 *.ipa
 
+# Claude Code
+.claude/
+
 # macOS
 .DS_Store
 .AppleDouble

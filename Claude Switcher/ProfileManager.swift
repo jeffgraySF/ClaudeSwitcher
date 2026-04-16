@@ -64,18 +64,21 @@ class ProfileManager {
         NSApp.activate(ignoringOtherApps: true)
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        // Write a .command file — Terminal auto-opens these, no AppleScript/TCC needed
         let shellScript = """
         #!/bin/bash
+        printf '\\033]1;\(profile.name)\\007'
         cd '\(url.path.replacingOccurrences(of: "'", with: "'\\''"))'
         export CLAUDE_CONFIG_DIR='\(expandedDir.replacingOccurrences(of: "'", with: "'\\''"))'
         claude
         """
         let tempURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(profile.name).command")
+            .appendingPathComponent(UUID().uuidString + ".command")
         try? shellScript.write(to: tempURL, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempURL.path)
         NSWorkspace.shared.open(tempURL)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
     }
 
     func addProfile() {
