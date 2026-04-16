@@ -55,7 +55,7 @@ The tradeoff: no usage stats dashboard. That's the feature that requires token a
 ## Installation
 
 ```bash
-git clone https://github.com/yourusername/ClaudeSwitcher.git
+git clone https://github.com/jeffgraySF/ClaudeSwitcher.git
 cd ClaudeSwitcher
 make run
 ```
