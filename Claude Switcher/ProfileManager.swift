@@ -76,10 +76,11 @@ class ProfileManager {
             .appendingPathComponent(UUID().uuidString + ".command")
         try? shellScript.write(to: tempURL, atomically: true, encoding: .utf8)
         try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: tempURL.path)
+        // Don't delete the temp file — NSWorkspace.open returns immediately, before
+        // Terminal has read it. On a cold Terminal launch, a cleanup timer can win the
+        // race and delete the file before Terminal runs it, so claude never starts.
+        // The files are tiny and live in the OS temp dir, which is cleared periodically.
         NSWorkspace.shared.open(tempURL)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            try? FileManager.default.removeItem(at: tempURL)
-        }
     }
 
     func addProfile() {
