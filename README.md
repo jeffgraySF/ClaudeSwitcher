@@ -80,6 +80,10 @@ CLAUDE_CONFIG_DIR=~/.claude-work claude       # log in, then /exit
 - **Add/remove** — `+` button in Settings, or swipe left on a row to delete.
 - **Emoji picker** — click the emoji field in Settings to open the macOS character palette.
 
+### Swapping one account for another
+
+To replace a profile (e.g. drop an old company, add a new one), just edit its row in **Settings…** — change the name, emoji, and config dir in place, then hit **+** if you also need an extra slot. Give each account its own config dir (e.g. `~/.claude-acme`) so their logins stay separate; the dir is created automatically the first time you launch that profile, and you'll log into the account once.
+
 ## Project structure
 
 ```

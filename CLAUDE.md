@@ -32,14 +32,29 @@ The `Profile` struct is `Codable` + `Hashable` with a stable `UUID` id.
 
 - **No Keychain access** — deliberate security boundary. Do not add code that reads macOS Keychain entries.
 - **No credential file access** — `launchClaude` only creates the config directory, never reads it.
-- **Sandbox is disabled** (`ENABLE_APP_SANDBOX = NO`) — required for `NSWorkspace.open` on temp `.command` files. This is intentional; the app is meant to be built from source.
+- **Sandbox status is contradictory** — build settings say `ENABLE_APP_SANDBOX = NO`, but `Claude Switcher.entitlements` sets `com.apple.security.app-sandbox = true`, and the entitlement wins, so the installed app actually runs **sandboxed** (see the UserDefaults section for the consequence — prefs live in a container). If you want it truly unsandboxed, the entitlements file must also be changed, not just the build setting. `NSWorkspace.open` on temp `.command` files still works under the current entitlements.
 - `LSUIElement = YES` is set via `INFOPLIST_KEY_LSUIElement` in build settings (not a separate Info.plist file).
 - `ProfileManager` uses `@Observable` + `@Environment` (Swift/SwiftUI modern observation). Do not revert to `ObservableObject`/`@Published` — it breaks under `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`.
 - The project targets macOS 26 SDK (Xcode 26) but deploys to macOS 14.0.
 
-## UserDefaults
+## UserDefaults — where profiles ACTUALLY live
 
-Profiles are stored under bundle ID `com.claudeswitcher.ClaudeSwitcher`. If the bundle ID ever changes, profiles will appear reset. To migrate: copy the `profiles` and `activeProfileID` keys from the old domain to the new one using `defaults export/write`, then run `killall cfprefsd` to flush the preferences cache before relaunching.
+**Edit profiles only through the app's Settings window.** Do NOT try to edit them with `defaults`/`plutil` from the command line — it does not work and wastes a lot of time. Here's why, because it's counterintuitive:
+
+The **installed app runs sandboxed**, so its UserDefaults are redirected into a sandbox container. The real, live file the app reads and writes is:
+
+```
+~/Library/Containers/jeff.Claude-Switcher/Data/Library/Preferences/jeff.Claude-Switcher.plist
+```
+
+Two things make this non-obvious, and both are stated wrong elsewhere in older notes:
+
+1. **The runtime domain is `jeff.Claude-Switcher`** (Xcode's auto-generated identifier), NOT `com.claudeswitcher.ClaudeSwitcher` — even though that's the `PRODUCT_BUNDLE_IDENTIFIER`/`CFBundleIdentifier` in the current source. The installed binary predates that bundle-id change, so its container and defaults domain are still the old auto-generated name.
+2. **The app is sandboxed**, despite `ENABLE_APP_SANDBOX = NO` in build settings. The explicit `Claude Switcher.entitlements` file sets `com.apple.security.app-sandbox = true`, and that entitlement wins — hence the container.
+
+`defaults read/write jeff.Claude-Switcher` from a normal shell hits the **non-container** `~/Library/Preferences/jeff.Claude-Switcher.plist` (and cfprefsd's non-container cache), which the sandboxed app never reads. So external edits and the app look at different files and can never agree — no amount of `killall cfprefsd` bridges it. To inspect (read-only) the real value, read the container plist path above directly with `plutil`.
+
+If you rebuild+reinstall from current source, the new binary may switch to the `com.claudeswitcher.ClaudeSwitcher` domain and/or unsandboxed prefs, in which case profiles will appear reset — just re-enter them in Settings.
 
 ## Temp file launch mechanism
 
